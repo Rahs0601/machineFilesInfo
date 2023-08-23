@@ -19,9 +19,11 @@ namespace machineFilesInfo
 {
     public partial class Service1 : ServiceBase
     {
-        
-        string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
+        string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
+        List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
+        var LocalFileList = new List<FileInformation>();
         Thread thread = null;
         public Service1()
         {
@@ -39,35 +41,70 @@ namespace machineFilesInfo
             thread = new Thread(start);
             thread.Start();
         }
+        private void GetLocalFiles(string path)
+        {
+            try
+            {
+
+                foreach (string subDirectory in Directory.GetDirectories(path, "Proven Machine Program", SearchOption.AllDirectories))
+                {
+                    foreach (string file in Directory.GetFiles(subDirectory))
+                    {
+                        FileInformation localFile = new FileInformation();
+                        FileInfo fileInfo = new FileInfo(file);
+                        localFile.FileName = fileInfo.Name;
+                        localFile.FileType = fileInfo.Extension;
+                        localFile.FolderPath = fileInfo.DirectoryName;
+                        localFile.FileSize = fileInfo.Length;
+                        localFile.CreatedDate = fileInfo.CreationTime;
+                        localFile.ModifiedDate = fileInfo.LastWriteTime;
+                        localFile.Owner = "UnknownOwner";
+                        localFile.ComputerName = Environment.MachineName;
+                        ProvenMachineProgramList.Add(localFile);
+                    }
+                }
+                foreach (string subDirectory in Directory.GetDirectories(path, "Standard Software Program", SearchOption.AllDirectories))
+                {
+                    foreach (string file in Directory.GetFiles(subDirectory))
+                    {
+                        FileInformation localFile = new FileInformation();
+                        FileInfo fileInfo = new FileInfo(file);
+                        localFile.FileName = fileInfo.Name;
+                        localFile.FileType = fileInfo.Extension;
+                        localFile.FolderPath = fileInfo.DirectoryName;
+                        localFile.FileSize = fileInfo.Length;
+                        localFile.CreatedDate = fileInfo.CreationTime;
+                        localFile.ModifiedDate = fileInfo.LastWriteTime;
+                        localFile.Owner = "UnknownOwner";
+                        localFile.ComputerName = Environment.MachineName;
+                        StandardSoftwareProgramList.Add(localFile);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteErrorLog(ex.Message);
+            }
+        }
         public void setAndGetFileInfo()
         {
             fileDataBaseAccess fdba = new fileDataBaseAccess();
             List<FileInformation> dblist = fdba.GetFileInformation();
-            List<FileInformation> localFileList = new List<FileInformation>();
-            string machineFile = ConfigurationManager.AppSettings["folderPath"].ToString();
+            string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
+
+
             try
             {
-                if (Directory.Exists(machineFile))
-                {
-                    string[] files = Directory.GetFiles(machineFile);
 
-                    if (files.Length > 0 )
+
+                if (Directory.Exists(LocalDirectory))
+                {
+                    string[] files = Directory.GetFiles(LocalDirectory);
+
+                    if (files.Length > 0)
                     {
-                        foreach (string file in files)
-                        {
-                            FileInformation localFile = new FileInformation();
-                            FileInfo fileInfo = new FileInfo(file);
-                            localFile.FileName = fileInfo.Name;
-                            localFile.FileType = fileInfo.Extension;
-                            localFile.FolderPath = fileInfo.DirectoryName;
-                            localFile.FileSize = fileInfo.Length;
-                            localFile.CreatedDate = fileInfo.CreationTime;
-                            localFile.ModifiedDate = fileInfo.LastWriteTime;
-                            localFile.Owner = "UnknownOwner";
-                            localFile.ComputerName = Environment.MachineName;
-                            localFileList.Add(localFile);
-                        }
-                       
+
+
                         var modifiedFiles = localFileList.Where(localfile => dblist.Any(dbFile => (dbFile.FileName == localfile.FileName) && (dbFile.ModifiedDate != localfile.ModifiedDate)));
 
                         foreach (FileInformation local in localFileList)
@@ -76,7 +113,7 @@ namespace machineFilesInfo
                             {
                                 fdba.SetFileInformation(local.FileName, local.FileSize, local.ModifiedDate);
 
-                                    
+
                                 try
                                 {
                                     string updateQry = "UPDATE machineFileInfo " +
@@ -94,7 +131,7 @@ namespace machineFilesInfo
 
                                         Logger.WriteExtraLog($"File {local.FileName} information updated into the database." + DateTime.Now);
                                     }
-                                
+
                                 }
                                 catch (Exception ex)
                                 {
@@ -143,7 +180,7 @@ namespace machineFilesInfo
                 }
                 else
                 {
-                    Logger.WriteDebugLog("Invalid folder path: " + machineFile);
+                    Logger.WriteDebugLog("Invalid folder path: " + LocalDirectory);
                 }
             }
             catch (DirectoryNotFoundException)
