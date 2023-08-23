@@ -66,6 +66,7 @@
     <Compile Include="ConnectionManager.cs" />
     <Compile Include="fileDataBaseAccess.cs" />
     <Compile Include="FileInformation.cs" />
+    <Compile Include="FileInformationComparer.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Service1.cs">
       <SubType>Component</SubType>

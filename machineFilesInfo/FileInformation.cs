@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace machineFilesInfo
 {
-    class FileInformation
+    public class FileInformation
     {
         private string folderPath;
         private string fileName;

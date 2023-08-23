@@ -23,7 +23,7 @@ namespace machineFilesInfo
         string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
         List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
-        var LocalFileList = new List<FileInformation>();
+
         Thread thread = null;
         public Service1()
         {
@@ -90,91 +90,41 @@ namespace machineFilesInfo
         {
             fileDataBaseAccess fdba = new fileDataBaseAccess();
             List<FileInformation> dblist = fdba.GetFileInformation();
-            string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
 
+            string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
+            GetLocalFiles(LocalDirectory);
 
             try
             {
-
 
                 if (Directory.Exists(LocalDirectory))
                 {
                     string[] files = Directory.GetFiles(LocalDirectory);
 
-                    if (files.Length > 0)
+                    // Use Intersect to find files that are present in both lists
+                    var commonFiles = ProvenMachineProgramList.Intersect(StandardSoftwareProgramList, new FileInformationComparer()).ToList();
+
+                    // Use Except to find distinct files
+                    var distinctFiles = ProvenMachineProgramList.Except(StandardSoftwareProgramList, new FileInformationComparer()).ToList();
+
+
+
+                    if (commonFiles.Count > 0)
                     {
-
-
-                        var modifiedFiles = localFileList.Where(localfile => dblist.Any(dbFile => (dbFile.FileName == localfile.FileName) && (dbFile.ModifiedDate != localfile.ModifiedDate)));
-
-                        foreach (FileInformation local in localFileList)
+                        foreach (var file in commonFiles)
                         {
-                            if (false)
+                            FileInformation dbfile = dblist[dblist.IndexOf(file)];
+                            if (!dbfile.ModifiedDate.Equals(file.ModifiedDate))
                             {
-                                fdba.SetFileInformation(local.FileName, local.FileSize, local.ModifiedDate);
-
-
-                                try
-                                {
-                                    string updateQry = "UPDATE machineFileInfo " +
-                                                   "SET fileDateModified = @ModifiedDate, fileSize = @FileSize" +
-                                                   "WHERE fileName = @fileName";
-
-                                    SqlConnection conn = ConnectionManager.GetConnection();
-
-                                    using (SqlCommand cmd = new SqlCommand(updateQry, conn))
-                                    {
-                                        cmd.Parameters.AddWithValue("@fileSize", local.FileSize);
-                                        cmd.Parameters.AddWithValue("@modifiedDate", local.ModifiedDate);
-
-                                        cmd.ExecuteNonQuery();
-
-                                        Logger.WriteExtraLog($"File {local.FileName} information updated into the database." + DateTime.Now);
-                                    }
-
-                                }
-                                catch (Exception ex)
-                                {
-                                    Logger.WriteErrorLog("Error while updating data: " + ex.Message);
-                                }
-                                Logger.WriteExtraLog($"File {local.FileName} information updated into the database." + DateTime.Now);
+                                fdba.updateDatabase(file);
                             }
-                            else
-                            {
-
-                                // Check if the file information is already in the database
-                                SqlConnection conn = ConnectionManager.GetConnection();
-                                SqlCommand checkCommand = new SqlCommand("SELECT fileName FROM machineFileInfo WHERE fileName = @file_Name", conn);
-                                checkCommand.Parameters.AddWithValue("@file_Name", local.FileName);
-
-                                int? existingId = checkCommand.ExecuteScalar() as int?;
-
-
-                                if (existingId == null)
-                                {
-                                    string insertQry = "Insert into machineFileInfo(fileName, fileType, filePath, fileSize, fileDateCreated, fileDateModified, fileOwner, computer)  " +
-                                                 "values  (@file_Name, @file_Type, @folder, @file_Size, @created_Date, @modified_Date , @owner, @computer_Name)";
-
-                                    conn = ConnectionManager.GetConnection();
-
-
-                                    using (SqlCommand cmd = new SqlCommand(insertQry, conn))
-                                    {
-                                        cmd.Parameters.AddWithValue("@file_Name", local.FileName);
-                                        cmd.Parameters.AddWithValue("@file_Type", local.FileType);
-                                        cmd.Parameters.AddWithValue("@folder", local.FolderPath);
-                                        cmd.Parameters.AddWithValue("@file_Size", local.FileSize);
-                                        cmd.Parameters.AddWithValue("@created_Date", local.CreatedDate);
-                                        cmd.Parameters.AddWithValue("@modified_Date", local.ModifiedDate);
-                                        cmd.Parameters.AddWithValue("@owner", local.Owner);
-                                        cmd.Parameters.AddWithValue("@computer_Name", local.ComputerName);
-
-                                        cmd.ExecuteNonQuery();
-
-                                        Logger.WriteExtraLog($"File {local.FileName} information inserted into the database." + DateTime.Now);
-                                    }
-                                }
-                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (FileInformation local in distinctFiles)
+                        {
+                            fdba.InsertIntoDatabase(local);
                         }
                     }
                 }
