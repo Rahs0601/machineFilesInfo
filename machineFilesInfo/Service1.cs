@@ -1,30 +1,21 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
-using System.Data;
-using System.Data.SqlClient;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Remoting.Contexts;
 using System.ServiceProcess;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace machineFilesInfo
 {
     public partial class Service1 : ServiceBase
     {
-
-        string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
-        List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
-
-        Thread thread = null;
+        private readonly string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private readonly List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
+        private readonly List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
+        private Thread thread = null;
         public Service1()
         {
             InitializeComponent();
@@ -34,7 +25,7 @@ namespace machineFilesInfo
         {
             if (!Directory.Exists(appPath + "\\Logs\\"))
             {
-                Directory.CreateDirectory(appPath + "\\Logs\\");
+                _ = Directory.CreateDirectory(appPath + "\\Logs\\");
             }
 
             ThreadStart start = new ThreadStart(setAndGetFileInfo);
@@ -102,16 +93,39 @@ namespace machineFilesInfo
                     string[] files = Directory.GetFiles(LocalDirectory);
 
                     // Use Intersect to find files that are present in both lists
-                    var commonFiles = ProvenMachineProgramList.Intersect(StandardSoftwareProgramList, new FileInformationComparer()).ToList();
+                    List<FileInformation> commonFiles = new List<FileInformation>();
 
                     // Use Except to find distinct files
-                    var distinctFiles = ProvenMachineProgramList.Except(StandardSoftwareProgramList, new FileInformationComparer()).ToList();
+                    List<FileInformation> distinctFiles = new List<FileInformation>();
 
+                    // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
+
+                    foreach (FileInformation file in StandardSoftwareProgramList)
+                    {
+                        //get 2nd last folder name
+                        string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
+
+                        //get file from dblist with same filename and parent folder name
+                        FileInformation dbfile = dblist.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
+
+                        //if file is present in dblist then add it to commonFiles list
+                        if (dbfile != null)
+                        {
+                            commonFiles.Add(dbfile);
+                        }
+
+                        //if file is not present in dblist then add it to distinctFiles list
+                        else
+                        {
+                            distinctFiles.Add(file);
+                        }
+
+                    }
 
 
                     if (commonFiles.Count > 0)
                     {
-                        foreach (var file in commonFiles)
+                        foreach (FileInformation file in commonFiles)
                         {
                             FileInformation dbfile = dblist[dblist.IndexOf(file)];
                             if (!dbfile.ModifiedDate.Equals(file.ModifiedDate))
@@ -143,6 +157,7 @@ namespace machineFilesInfo
             }
 
         }
+
         protected override void OnStop()
         {
             thread.Abort();
