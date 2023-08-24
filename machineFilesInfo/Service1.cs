@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Configuration;
 using System.IO;
 using System.Linq;
@@ -13,10 +12,9 @@ namespace machineFilesInfo
     public partial class Service1 : ServiceBase
     {
         private readonly string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        private readonly List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
-        private readonly List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
-
-        List<FileInformation> dblist = new List<FileInformation>();
+        private List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
+        private List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
+        private List<FileInformation> dblist = new List<FileInformation>();
         private Thread thread = null;
         public Service1()
         {
@@ -83,45 +81,49 @@ namespace machineFilesInfo
         {
             fileDataBaseAccess fdba = new fileDataBaseAccess();
             dblist = fdba.GetFileInformation();
-
             string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
             GetLocalFiles(LocalDirectory);
 
             try
             {
 
-                if (Directory.Exists(LocalDirectory))
+                foreach (FileInformation file in ProvenMachineProgramList)
                 {
-                    //string[] files = Directory.GetFiles(LocalDirectory);
-
-
-                    // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
-
-                    // if db == program 
-
-                    foreach (FileInformation file in StandardSoftwareProgramList)
+                    if (dblist.Contains(file))
                     {
-                        //get 2nd last folder name
                         string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
-
-                        //get file from dblist with same filename and parent folder name
                         FileInformation dbfile = dblist.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
-
-                        //if file is present in dblist then add it to commonFiles list
-
-                        if (file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString()))
+                        if (!file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString()))
                         {
-                            fdba.updateDatabase(file, dbfile);
-                        }
-                        else
-                        {
-                            fdba.InsertIntoDatabase(file);
+                            fdba.updateDatabaseProven(file, dbfile);
                         }
                     }
+                    else
+                    {
+                        fdba.InsertIntoDatabase(file);
+                    }
                 }
-                else
+                //string[] files = Directory.GetFiles(LocalDirectory);
+
+
+                // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
+
+                // if db == program 
+
+                foreach (FileInformation file in StandardSoftwareProgramList)
                 {
-                    Logger.WriteDebugLog("Invalid folder path: " + LocalDirectory);
+                    string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
+
+                    FileInformation pfile = ProvenMachineProgramList.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
+
+                    if (file.ModifiedDate.ToString().Equals(pfile.ModifiedDate.ToString()))
+                    {
+                        fdba.updateDatabase(file, pfile);
+                    }
+                    else
+                    {
+                        fdba.InsertIntoDatabase(file);
+                    }
                 }
             }
             catch (DirectoryNotFoundException)

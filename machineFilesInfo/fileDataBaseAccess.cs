@@ -94,5 +94,19 @@ namespace machineFilesInfo
                 Logger.WriteExtraLog($"File {File.FileName} information updated in  database." + DateTime.Now);
             }
         }
+        public void updateDatabaseProven(FileInformation PFile, FileInformation dbFile)
+        {
+            int val = 0;
+            string updateQry = $"UPDATE machineFileInfo SET provenModifiedDate = '{PFile.ModifiedDate}',isModified = {val} WHERE fileName = '{PFile.FileName}'";
+            SqlConnection conn = ConnectionManager.GetConnection();
+
+            using (SqlCommand cmd = new SqlCommand(updateQry, conn))
+            {
+
+                cmd.ExecuteNonQuery();
+
+                Logger.WriteExtraLog($"File {PFile.FileName} information updated in  database." + DateTime.Now);
+            }
+        }
     }
 }
