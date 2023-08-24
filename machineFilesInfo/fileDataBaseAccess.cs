@@ -58,6 +58,8 @@ namespace machineFilesInfo
 
         public void InsertIntoDatabase(FileInformation local)
         {
+            string Cdate = local.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss");
+            string Mdate = local.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
             string insertQry = "Insert into machineFileInfo(fileName, fileType, filePath, fileSize, fileDateCreated, provenModifiedDate, fileOwner, computer)  " +
                                                 "values  (@file_Name, @file_Type, @folder, @file_Size, @created_Date, @modified_Date , @owner, @computer_Name)";
 
@@ -69,8 +71,8 @@ namespace machineFilesInfo
                 cmd.Parameters.AddWithValue("@file_Type", local.FileType);
                 cmd.Parameters.AddWithValue("@folder", local.FolderPath);
                 cmd.Parameters.AddWithValue("@file_Size", local.FileSize);
-                cmd.Parameters.AddWithValue("@created_Date", local.CreatedDate);
-                cmd.Parameters.AddWithValue("@modified_Date", local.ModifiedDate);
+                cmd.Parameters.AddWithValue("@created_Date", Cdate);
+                cmd.Parameters.AddWithValue("@modified_Date", Mdate);
                 cmd.Parameters.AddWithValue("@owner", local.Owner);
                 cmd.Parameters.AddWithValue("@computer_Name", local.ComputerName);
 
@@ -79,34 +81,44 @@ namespace machineFilesInfo
                 Logger.WriteExtraLog($"File {local.FileName} information inserted into the database." + DateTime.Now);
             }
         }
-        public void updateDatabase(FileInformation File, FileInformation File2)
+        public void updateDatabaseStandard(FileInformation File, FileInformation File2)
         {
-            int val = int.Parse(File.ModifiedDate.ToString().Equals(File2.ModifiedDate.ToString()).ToString());
-            string updateQry = $"UPDATE machineFileInfo SET storedModifiedDate = '{File.ModifiedDate}', isModified = {val} WHERE fileName = '{File.FileName}'";
+            //int val = int.Parse(File.ModifiedDate.ToString().Equals(File2.ModifiedDate.ToString()).ToString());
+            int val = 0;
+            if (File.ModifiedDate.ToString().Equals(File2.ModifiedDate.ToString()))
+            {
+                val = 1;
+            }
+            string date = File.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
+            //remove last folder in folder path 
+            string folder = File.FolderPath.Substring(0, File.FolderPath.LastIndexOf('\\'));
+            string updateQry = $"UPDATE machineFileInfo SET storedModifiedDate = '{date}', isModified = {val} WHERE fileName = '{File.FileName}' and filePath like '{folder}%'";
             SqlConnection conn = ConnectionManager.GetConnection();
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
-                cmd.Parameters.AddWithValue("@modified_Date", File.ModifiedDate);
-
                 cmd.ExecuteNonQuery();
-
                 Logger.WriteExtraLog($"File {File.FileName} information updated in  database." + DateTime.Now);
             }
         }
-        public void updateDatabaseProven(FileInformation PFile, FileInformation dbFile)
+        public void updateDatabaseProven(FileInformation PFile)
         {
             int val = 0;
-            string updateQry = $"UPDATE machineFileInfo SET provenModifiedDate = '{PFile.ModifiedDate}',isModified = {val} WHERE fileName = '{PFile.FileName}'";
+            string date = PFile.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
             SqlConnection conn = ConnectionManager.GetConnection();
+            string updateQry = "UPDATE machineFileInfo SET provenModifiedDate = @date, isModified = @val WHERE fileName = @fileName AND filePath = @filePath";
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
+                cmd.Parameters.AddWithValue("@date", date);
+                cmd.Parameters.AddWithValue("@val", val);
+                cmd.Parameters.AddWithValue("@fileName", PFile.FileName);
+                cmd.Parameters.AddWithValue("@filePath", PFile.FolderPath);
 
                 cmd.ExecuteNonQuery();
-
-                Logger.WriteExtraLog($"File {PFile.FileName} information updated in  database." + DateTime.Now);
+                Logger.WriteExtraLog($"File {PFile.FileName} information updated in database." + DateTime.Now);
             }
+
         }
     }
 }

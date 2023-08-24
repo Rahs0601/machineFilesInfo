@@ -34,6 +34,7 @@ namespace machineFilesInfo
         }
         private void GetLocalFiles(string path)
         {
+
             try
             {
 
@@ -76,63 +77,62 @@ namespace machineFilesInfo
             {
                 Logger.WriteErrorLog(ex.Message);
             }
+
         }
         public void setAndGetFileInfo()
         {
-            fileDataBaseAccess fdba = new fileDataBaseAccess();
-            dblist = fdba.GetFileInformation();
-            string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
-            GetLocalFiles(LocalDirectory);
-
-            try
+            while (true)
             {
+                fileDataBaseAccess fdba = new fileDataBaseAccess();
+                dblist = fdba.GetFileInformation();
+                string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
+                GetLocalFiles(LocalDirectory);
 
-                foreach (FileInformation file in ProvenMachineProgramList)
+                try
                 {
-                    if (dblist.Contains(file))
+
+                    foreach (FileInformation file in ProvenMachineProgramList)
                     {
                         string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
+
                         FileInformation dbfile = dblist.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
-                        if (!file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString()))
+                        if (dbfile != null && !(file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString())))
                         {
-                            fdba.updateDatabaseProven(file, dbfile);
+                            fdba.updateDatabaseProven(file);
+                        }
+
+                        if (dbfile == null)
+                        {
+                            fdba.InsertIntoDatabase(file);
                         }
                     }
-                    else
+                    //string[] files = Directory.GetFiles(LocalDirectory);
+
+
+                    // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
+
+                    // if db == program 
+
+                    foreach (FileInformation file in StandardSoftwareProgramList)
                     {
-                        fdba.InsertIntoDatabase(file);
+                        string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
+
+                        FileInformation pfile = ProvenMachineProgramList.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
+
+                        if (pfile != null && file.ModifiedDate.ToString().Equals(pfile.ModifiedDate.ToString()))
+                        {
+                            fdba.updateDatabaseStandard(file, pfile);
+                        }
                     }
                 }
-                //string[] files = Directory.GetFiles(LocalDirectory);
-
-
-                // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
-
-                // if db == program 
-
-                foreach (FileInformation file in StandardSoftwareProgramList)
+                catch (DirectoryNotFoundException)
                 {
-                    string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
-
-                    FileInformation pfile = ProvenMachineProgramList.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
-
-                    if (file.ModifiedDate.ToString().Equals(pfile.ModifiedDate.ToString()))
-                    {
-                        fdba.updateDatabase(file, pfile);
-                    }
-                    else
-                    {
-                        fdba.InsertIntoDatabase(file);
-                    }
+                    Logger.WriteDebugLog("The specified folder does not exist.");
                 }
-            }
-            catch (DirectoryNotFoundException)
-            {
-                Logger.WriteDebugLog("The specified folder does not exist.");
-            }
-            catch (Exception ex)
-            {
-                Logger.WriteErrorLog($"An error occurred: {ex.Message}" + DateTime.Now);
+                catch (Exception ex)
+                {
+                    Logger.WriteErrorLog($"An error occurred: {ex.Message}" + DateTime.Now);
+                }
             }
 
         }
