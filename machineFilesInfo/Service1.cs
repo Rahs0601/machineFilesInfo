@@ -83,6 +83,7 @@ namespace machineFilesInfo
         {
             while (true)
             {
+
                 fileDataBaseAccess fdba = new fileDataBaseAccess();
                 dblist = fdba.GetFileInformation();
                 string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
@@ -91,14 +92,14 @@ namespace machineFilesInfo
                 try
                 {
 
-                    foreach (FileInformation file in ProvenMachineProgramList)
+                    foreach (FileInformation file in StandardSoftwareProgramList)
                     {
-                        string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
+                        string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First(); // operation 
 
                         FileInformation dbfile = dblist.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
                         if (dbfile != null && !(file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString())))
                         {
-                            fdba.updateDatabaseProven(file);
+                            fdba.updateDatabaseStandard(file);
                         }
 
                         if (dbfile == null)
@@ -113,16 +114,17 @@ namespace machineFilesInfo
 
                     // if db == program 
 
-                    foreach (FileInformation file in StandardSoftwareProgramList)
+                    foreach (FileInformation file in ProvenMachineProgramList)
                     {
                         string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
 
-                        FileInformation pfile = ProvenMachineProgramList.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
+                        FileInformation pfile = StandardSoftwareProgramList.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
 
-                        if (pfile != null && file.ModifiedDate.ToString().Equals(pfile.ModifiedDate.ToString()))
+                        if (pfile != null) //&& file.ModifiedDate.ToString().Equals(pfile.ModifiedDate.ToString()))
                         {
-                            fdba.updateDatabaseStandard(file, pfile);
+                            fdba.updateDatabaseProven(file, pfile);
                         }
+
                     }
                 }
                 catch (DirectoryNotFoundException)
@@ -133,8 +135,11 @@ namespace machineFilesInfo
                 {
                     Logger.WriteErrorLog($"An error occurred: {ex.Message}" + DateTime.Now);
                 }
+                //clear the list
+                ProvenMachineProgramList.Clear();
+                StandardSoftwareProgramList.Clear();
+                dblist.Clear();
             }
-
         }
 
         protected override void OnStop()
