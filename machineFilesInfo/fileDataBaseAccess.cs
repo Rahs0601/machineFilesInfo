@@ -98,7 +98,7 @@ namespace machineFilesInfo
             string date = File.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
             //remove last folder in folder path 
             string folder = File.FolderPath.Substring(0, File.FolderPath.LastIndexOf('\\'));
-            string updateQry = $"UPDATE machineFileInfo SET provenModifiedDate = '{date}', isMoved = {val} WHERE fileName = '{File.FileName}' and filePath like '{folder}\\" + "%'";
+            string updateQry = $"UPDATE machineFileInfo SET provenModifiedDate = '{date}', isMoved = {val}, UpdatedTS = GETDATE() WHERE fileName = '{File.FileName}' and filePath like '{folder}\\" + "%'";
             SqlConnection conn = ConnectionManager.GetConnection();
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
@@ -112,7 +112,7 @@ namespace machineFilesInfo
             int val = 0;
             string date = SFile.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
             SqlConnection conn = ConnectionManager.GetConnection();
-            string updateQry = "UPDATE machineFileInfo SET storedModifiedDate = @date, isMoved = @val, fileSize = @fileSize WHERE fileName = @fileName AND filePath = @filePath";
+            string updateQry = "UPDATE machineFileInfo SET storedModifiedDate = @date, isMoved = @val, fileSize = @fileSize , UpdatedTS = GETDATE() WHERE fileName = @fileName AND filePath = @filePath";
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,8 +15,12 @@ namespace machineFilesInfo
         private readonly string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
         private List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
+        Dictionary<string, DateTime> shiftDetails = new Dictionary<string, DateTime>();
         private List<FileInformation> dblist = new List<FileInformation>();
-        private Thread thread = null;
+        string synctype = ConfigurationManager.AppSettings["syncType"];
+        DateTime startTime = DateTime.Parse(ConfigurationManager.AppSettings["startTime"]);
+        private Thread StartFunctionThread = null;
+        bool running;
         public Service1()
         {
             InitializeComponent();
@@ -23,14 +28,56 @@ namespace machineFilesInfo
 
         protected override void OnStart(string[] args)
         {
+            running = true;
             if (!Directory.Exists(appPath + "\\Logs\\"))
             {
                 _ = Directory.CreateDirectory(appPath + "\\Logs\\");
             }
 
-            ThreadStart start = new ThreadStart(setAndGetFileInfo);
-            thread = new Thread(start);
-            thread.Start();
+            if (synctype.Equals("shiftend", StringComparison.OrdinalIgnoreCase))
+            {
+                string query = "select * from shiftdetails where running = 1";
+                SqlConnection conn = ConnectionManager.GetConnection();
+                SqlCommand cmd = new SqlCommand(query, conn);
+                SqlDataReader reader = default(SqlDataReader);
+
+                while (reader.Read())
+                {
+                    shiftDetails.Add(reader["shiftName"].ToString(), DateTime.Parse(reader["shiftEndTime"].ToString()));
+                }
+            }
+            else
+            {
+                shiftDetails.Add("default", startTime);
+            }
+            Thread.CurrentThread.Name = "Main";
+            Thread StartFunctionThread = new Thread(new ThreadStart(StartFunction));
+            StartFunctionThread.Name = "FileDataBaseInfo";
+            StartFunctionThread.Start();
+        }
+
+        private void StartFunction()
+        {
+            while (running)
+            {
+#if DEBUG
+                setAndGetFileInfo();
+#endif
+                foreach (var date in shiftDetails)
+                {
+
+                    if (date.Value.TimeOfDay == DateTime.Now.TimeOfDay)
+                    {
+                        setAndGetFileInfo();
+#if !DEBUG
+                        Thread.Sleep(1000 * 60 * 60 * 4);
+#endif
+                    }
+                }
+
+
+
+            }
         }
         private void GetLocalFiles(string path)
         {
@@ -81,70 +128,68 @@ namespace machineFilesInfo
         }
         public void setAndGetFileInfo()
         {
-            while (true)
+            fileDataBaseAccess fdba = new fileDataBaseAccess();
+            dblist = fdba.GetFileInformation();
+            string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
+            GetLocalFiles(LocalDirectory);
+
+            try
             {
 
-                fileDataBaseAccess fdba = new fileDataBaseAccess();
-                dblist = fdba.GetFileInformation();
-                string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
-                GetLocalFiles(LocalDirectory);
-
-                try
+                foreach (FileInformation file in StandardSoftwareProgramList)
                 {
+                    string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First(); // operation 
 
-                    foreach (FileInformation file in StandardSoftwareProgramList)
+                    FileInformation dbfile = dblist.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
+                    if (dbfile != null && !(file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString())))
                     {
-                        string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First(); // operation 
-
-                        FileInformation dbfile = dblist.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
-                        if (dbfile != null && !(file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString())))
-                        {
-                            fdba.updateDatabaseStandard(file);
-                        }
-
-                        if (dbfile == null)
-                        {
-                            fdba.InsertIntoDatabase(file);
-                        }
+                        fdba.updateDatabaseStandard(file);
                     }
-                    //string[] files = Directory.GetFiles(LocalDirectory);
 
-
-                    // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
-
-                    // if db == program 
-
-                    foreach (FileInformation file in ProvenMachineProgramList)
+                    if (dbfile == null)
                     {
-                        string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
-
-                        FileInformation pfile = StandardSoftwareProgramList.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
-
-                        if (pfile != null) //&& file.ModifiedDate.ToString().Equals(pfile.ModifiedDate.ToString()))
-                        {
-                            fdba.updateDatabaseProven(file, pfile);
-                        }
-
+                        fdba.InsertIntoDatabase(file);
                     }
                 }
-                catch (DirectoryNotFoundException)
+                //string[] files = Directory.GetFiles(LocalDirectory);
+
+
+                // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
+
+                // if db == program 
+
+                foreach (FileInformation file in ProvenMachineProgramList)
                 {
-                    Logger.WriteDebugLog("The specified folder does not exist.");
+                    string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
+
+                    FileInformation pfile = StandardSoftwareProgramList.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
+
+                    if (pfile != null) //&& file.ModifiedDate.ToString().Equals(pfile.ModifiedDate.ToString()))
+                    {
+                        fdba.updateDatabaseProven(file, pfile);
+                    }
+
                 }
-                catch (Exception ex)
-                {
-                    Logger.WriteErrorLog($"An error occurred: {ex.Message}" + DateTime.Now);
-                }
-                //clear the list
-                ProvenMachineProgramList.Clear();
-                StandardSoftwareProgramList.Clear();
-                dblist.Clear();
             }
+            catch (DirectoryNotFoundException)
+            {
+                Logger.WriteDebugLog("The specified folder does not exist.");
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteErrorLog($"An error occurred: {ex.Message}" + DateTime.Now);
+            }
+            //clear the list
+            ProvenMachineProgramList.Clear();
+            StandardSoftwareProgramList.Clear();
+            dblist.Clear();
         }
 
         protected override void OnStop()
         {
-            thread.Abort();
+            running = false;
+            StartFunctionThread.Abort();
+            Thread.CurrentThread.Name = "Main";
             Logger.WriteDebugLog($"Service Stop at: {DateTime.Now}");
         }
 
