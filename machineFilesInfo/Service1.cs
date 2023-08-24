@@ -15,6 +15,8 @@ namespace machineFilesInfo
         private readonly string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private readonly List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
         private readonly List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
+
+        List<FileInformation> dblist = new List<FileInformation>();
         private Thread thread = null;
         public Service1()
         {
@@ -80,7 +82,7 @@ namespace machineFilesInfo
         public void setAndGetFileInfo()
         {
             fileDataBaseAccess fdba = new fileDataBaseAccess();
-            List<FileInformation> dblist = fdba.GetFileInformation();
+            dblist = fdba.GetFileInformation();
 
             string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
             GetLocalFiles(LocalDirectory);
@@ -90,15 +92,12 @@ namespace machineFilesInfo
 
                 if (Directory.Exists(LocalDirectory))
                 {
-                    string[] files = Directory.GetFiles(LocalDirectory);
+                    //string[] files = Directory.GetFiles(LocalDirectory);
 
-                    // Use Intersect to find files that are present in both lists
-                    List<FileInformation> commonFiles = new List<FileInformation>();
-
-                    // Use Except to find distinct files
-                    List<FileInformation> distinctFiles = new List<FileInformation>();
 
                     // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
+
+                    // if db == program 
 
                     foreach (FileInformation file in StandardSoftwareProgramList)
                     {
@@ -109,36 +108,14 @@ namespace machineFilesInfo
                         FileInformation dbfile = dblist.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
 
                         //if file is present in dblist then add it to commonFiles list
-                        if (dbfile != null)
-                        {
-                            commonFiles.Add(dbfile);
-                        }
 
-                        //if file is not present in dblist then add it to distinctFiles list
+                        if (file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString()))
+                        {
+                            fdba.updateDatabase(file, dbfile);
+                        }
                         else
                         {
-                            distinctFiles.Add(file);
-                        }
-
-                    }
-
-
-                    if (commonFiles.Count > 0)
-                    {
-                        foreach (FileInformation file in commonFiles)
-                        {
-                            FileInformation dbfile = dblist[dblist.IndexOf(file)];
-                            if (!dbfile.ModifiedDate.Equals(file.ModifiedDate))
-                            {
-                                fdba.updateDatabase(file);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        foreach (FileInformation local in distinctFiles)
-                        {
-                            fdba.InsertIntoDatabase(local);
+                            fdba.InsertIntoDatabase(file);
                         }
                     }
                 }

@@ -6,12 +6,13 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 namespace machineFilesInfo
 {
     class fileDataBaseAccess
     {
-        FileInformation file = new FileInformation();
+
         public List<FileInformation> GetFileInformation()
         {
             List<FileInformation> files = new List<FileInformation>();
@@ -26,6 +27,7 @@ namespace machineFilesInfo
                 reader = cmd.ExecuteReader(CommandBehavior.CloseConnection);
                 while (reader.Read())
                 {
+                    FileInformation file = new FileInformation();
                     file.FileName = reader["fileName"].ToString().Trim();
                     file.FileType = reader["fileType"].ToString().Trim();
                     file.FolderPath = reader["filePath"].ToString().Trim();
@@ -52,12 +54,7 @@ namespace machineFilesInfo
 
         //string query = "Insert into machineFileInfo(fileName, fileType, filePath, fileSize, fileDateCreated, fileDateModified, fileOwner, computer)" +
         //                   "values  (@fileName, @fileType, @folder, @fileSize, @createdDate, @modifiedDate , @owner, @computerName)";
-        public void SetFileInformation(string changeFileName, long size, DateTime newModifiedDate)
-        {
-            file.FileName = changeFileName;
-            file.FileSize = size;
-            file.CreatedDate = newModifiedDate;
-        }
+
 
         public void InsertIntoDatabase(FileInformation local)
         {
@@ -82,20 +79,19 @@ namespace machineFilesInfo
                 Logger.WriteExtraLog($"File {local.FileName} information inserted into the database." + DateTime.Now);
             }
         }
-        public void updateDatabase(FileInformation commonFile)
+        public void updateDatabase(FileInformation File, FileInformation File2)
         {
-            string updateQry = "UPDATE machineFileInfo" +
-                               $"SET storedModifiedDate = {commonFile.ModifiedDate}, isModified = 1" +
-                               $"WHERE fileName  = {commonFile.FileName} ";
+            int val = int.Parse(File.ModifiedDate.ToString().Equals(File2.ModifiedDate.ToString()).ToString());
+            string updateQry = $"UPDATE machineFileInfo SET storedModifiedDate = '{File.ModifiedDate}', isModified = {val} WHERE fileName = '{File.FileName}'";
             SqlConnection conn = ConnectionManager.GetConnection();
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
-                cmd.Parameters.AddWithValue("@modified_Date", commonFile.ModifiedDate);
+                cmd.Parameters.AddWithValue("@modified_Date", File.ModifiedDate);
 
                 cmd.ExecuteNonQuery();
 
-                Logger.WriteExtraLog($"File {commonFile.FileName} information updated in  database." + DateTime.Now);
+                Logger.WriteExtraLog($"File {File.FileName} information updated in  database." + DateTime.Now);
             }
         }
     }
