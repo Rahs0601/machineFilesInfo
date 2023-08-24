@@ -9,9 +9,9 @@ namespace machineFilesInfo
 {
     public static class Logger
     {
-        static string appPath;
-        static string enableLog;
-        static string enableExtraLog;
+        private static readonly string appPath;
+        private static readonly string enableLog;
+        private static readonly string enableExtraLog;
         static Logger()
         {
             appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -27,7 +27,7 @@ namespace machineFilesInfo
                 StreamWriter writer = null;
                 try
                 {
-                    string progTime = String.Format("_{0:yyyyMMdd}", DateTime.Now);
+                    string progTime = string.Format("_{0:yyyyMMdd}", DateTime.Now);
                     string location = appPath + "\\Logs\\F-" + Thread.CurrentThread.Name + progTime + "-Status.txt";
 
                     writer = new StreamWriter(location, true, Encoding.UTF8, 8195);
@@ -51,7 +51,7 @@ namespace machineFilesInfo
             try
             {
                 CleanUpProcess.RenameLogFiles();
-                string progTime = String.Format("_{0:yyyyMMdd}", DateTime.Now);
+                string progTime = string.Format("_{0:yyyyMMdd}", DateTime.Now);
                 string location = appPath + "\\Logs\\F-" + Thread.CurrentThread.Name + progTime + "-Status.txt";
 
                 writer = new StreamWriter(location, true, Encoding.UTF8, 8195);
@@ -77,7 +77,7 @@ namespace machineFilesInfo
                 StreamWriter writer = null;
                 try
                 {
-                    string progTime = String.Format("_{0:yyyyMMdd}", DateTime.Now);
+                    string progTime = string.Format("_{0:yyyyMMdd}", DateTime.Now);
                     string location = appPath + "\\Logs\\F-" + Thread.CurrentThread.Name + progTime + "-Status.txt";
 
                     writer = new StreamWriter(location, true, Encoding.UTF8, 8195);

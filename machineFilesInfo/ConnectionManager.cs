@@ -4,15 +4,14 @@ using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 
 namespace machineFilesInfo
 {
     public static class ConnectionManager
     {
-        static string conString = ConfigurationManager.ConnectionStrings["SQLConnectionString"].ToString();
-        static string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private static readonly string conString = ConfigurationManager.ConnectionStrings["SQLConnectionString"].ToString();
+        private static readonly string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
         public static SqlConnection GetConnection()
         {

@@ -2,15 +2,11 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.WebRequestMethods;
 
 namespace machineFilesInfo
 {
-    class fileDataBaseAccess
+    internal class fileDataBaseAccess
     {
 
         public List<FileInformation> GetFileInformation()
@@ -20,22 +16,24 @@ namespace machineFilesInfo
             string query = "select * from machineFileInfo order by fileName";
             SqlConnection conn = ConnectionManager.GetConnection();
             SqlCommand cmd = new SqlCommand(query, conn);
-            SqlDataReader reader = default(SqlDataReader);
+            SqlDataReader reader = default;
 
             try
             {
                 reader = cmd.ExecuteReader(CommandBehavior.CloseConnection);
                 while (reader.Read())
                 {
-                    FileInformation file = new FileInformation();
-                    file.FileName = reader["fileName"].ToString().Trim();
-                    file.FileType = reader["fileType"].ToString().Trim();
-                    file.FolderPath = reader["filePath"].ToString().Trim();
-                    file.FileSize = Int32.Parse(reader["fileSize"].ToString());
-                    file.CreatedDate = (DateTime)reader["fileDateCreated"];
-                    file.ModifiedDate = (DateTime)reader["storedModifiedDate"];
-                    file.Owner = reader["fileOwner"].ToString().Trim();
-                    file.ComputerName = reader["computer"].ToString().Trim();
+                    FileInformation file = new FileInformation
+                    {
+                        FileName = reader["fileName"].ToString().Trim(),
+                        FileType = reader["fileType"].ToString().Trim(),
+                        FolderPath = reader["filePath"].ToString().Trim(),
+                        FileSize = int.Parse(reader["fileSize"].ToString()),
+                        CreatedDate = (DateTime)reader["fileDateCreated"],
+                        ModifiedDate = (DateTime)reader["storedModifiedDate"],
+                        Owner = reader["fileOwner"].ToString().Trim(),
+                        ComputerName = reader["computer"].ToString().Trim()
+                    };
                     files.Add(file);
                 }
             }
@@ -45,8 +43,8 @@ namespace machineFilesInfo
             }
             finally
             {
-                if (reader != null) reader.Close();
-                if (conn != null) conn.Close();
+                reader?.Close();
+                conn?.Close();
             }
 
             return files;
@@ -71,18 +69,18 @@ namespace machineFilesInfo
 
             using (SqlCommand cmd = new SqlCommand(insertQry, conn))
             {
-                cmd.Parameters.AddWithValue("@file_Name", local.FileName);
-                cmd.Parameters.AddWithValue("@file_Type", local.FileType);
-                cmd.Parameters.AddWithValue("@folder", local.FolderPath);
-                cmd.Parameters.AddWithValue("@file_Size", local.FileSize);
-                cmd.Parameters.AddWithValue("@created_Date", Cdate);
-                cmd.Parameters.AddWithValue("@modified_Date", Mdate);
-                cmd.Parameters.AddWithValue("@owner", local.Owner);
-                cmd.Parameters.AddWithValue("@computer_Name", local.ComputerName);
-                cmd.Parameters.AddWithValue("@opId", opid);
-                cmd.Parameters.AddWithValue("@opDescription", opdescription);
-                cmd.Parameters.AddWithValue("@component", component);
-                cmd.ExecuteNonQuery();
+                _ = cmd.Parameters.AddWithValue("@file_Name", local.FileName);
+                _ = cmd.Parameters.AddWithValue("@file_Type", local.FileType);
+                _ = cmd.Parameters.AddWithValue("@folder", local.FolderPath);
+                _ = cmd.Parameters.AddWithValue("@file_Size", local.FileSize);
+                _ = cmd.Parameters.AddWithValue("@created_Date", Cdate);
+                _ = cmd.Parameters.AddWithValue("@modified_Date", Mdate);
+                _ = cmd.Parameters.AddWithValue("@owner", local.Owner);
+                _ = cmd.Parameters.AddWithValue("@computer_Name", local.ComputerName);
+                _ = cmd.Parameters.AddWithValue("@opId", opid);
+                _ = cmd.Parameters.AddWithValue("@opDescription", opdescription);
+                _ = cmd.Parameters.AddWithValue("@component", component);
+                _ = cmd.ExecuteNonQuery();
                 Logger.WriteExtraLog($"File {local.FileName} information inserted into the database." + DateTime.Now);
             }
         }
@@ -103,7 +101,7 @@ namespace machineFilesInfo
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
-                cmd.ExecuteNonQuery();
+                _ = cmd.ExecuteNonQuery();
                 Logger.WriteExtraLog($"File {File.FileName} information updated in  database." + DateTime.Now);
             }
         }
@@ -116,13 +114,13 @@ namespace machineFilesInfo
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
-                cmd.Parameters.AddWithValue("@date", date);
-                cmd.Parameters.AddWithValue("@val", val);
-                cmd.Parameters.AddWithValue("@fileName", SFile.FileName);
-                cmd.Parameters.AddWithValue("@filePath", SFile.FolderPath);
-                cmd.Parameters.AddWithValue("@fileSize", SFile.FileSize);
+                _ = cmd.Parameters.AddWithValue("@date", date);
+                _ = cmd.Parameters.AddWithValue("@val", val);
+                _ = cmd.Parameters.AddWithValue("@fileName", SFile.FileName);
+                _ = cmd.Parameters.AddWithValue("@filePath", SFile.FolderPath);
+                _ = cmd.Parameters.AddWithValue("@fileSize", SFile.FileSize);
 
-                cmd.ExecuteNonQuery();
+                _ = cmd.ExecuteNonQuery();
                 Logger.WriteExtraLog($"File {SFile.FileName} information updated in database." + DateTime.Now);
             }
 

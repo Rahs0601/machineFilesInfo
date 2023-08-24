@@ -1,15 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 
 namespace machineFilesInfo
 {
     public static class CleanUpProcess
     {
-        static string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private static readonly string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         public static void DeleteFiles(string folder, string ip)
         {
             DirectoryInfo di = new DirectoryInfo(Path.Combine(appPath, folder));
@@ -37,12 +35,12 @@ namespace machineFilesInfo
 
         public static void RenameLogFiles()
         {
-            string progTime = String.Format("_{0:yyyyMMdd}", DateTime.Now);
+            string progTime = string.Format("_{0:yyyyMMdd}", DateTime.Now);
             string location = appPath + "\\Logs\\F-" + Thread.CurrentThread.Name + progTime + "-Status.txt";
             FileInfo f = new FileInfo(location);
             if (f.Exists && f.Length > 2097152)
             {
-                string newfile = appPath + "\\Logs\\" + (Path.GetFileNameWithoutExtension(f.Name)) + String.Format("_{0:HHmmss}", DateTime.Now) + ".txt";// + String.Format("{0:HHmmss}", DateTime.Now));
+                string newfile = appPath + "\\Logs\\" + Path.GetFileNameWithoutExtension(f.Name) + string.Format("_{0:HHmmss}", DateTime.Now) + ".txt";// + String.Format("{0:HHmmss}", DateTime.Now));
                 try
                 {
                     f.MoveTo(newfile);
@@ -57,13 +55,13 @@ namespace machineFilesInfo
         }
         public static void RenameTPMFiles()
         {
-            string progTime = String.Format("_{0:yyyyMMdd}", DateTime.Now);
+            string progTime = string.Format("_{0:yyyyMMdd}", DateTime.Now);
             string location = appPath + "\\TPMFiles\\F-" + Thread.CurrentThread.Name + progTime + ".txt";
 
             FileInfo f = new FileInfo(location);
             if (f.Exists && f.Length > 2097152)
             {
-                string newfile = appPath + "\\TPMFiles\\" + (Path.GetFileNameWithoutExtension(f.Name)) + String.Format("_{0:HHmmss}", DateTime.Now) + ".txt";
+                string newfile = appPath + "\\TPMFiles\\" + Path.GetFileNameWithoutExtension(f.Name) + string.Format("_{0:HHmmss}", DateTime.Now) + ".txt";
                 try
                 {
                     f.MoveTo(newfile);
@@ -77,13 +75,13 @@ namespace machineFilesInfo
         }
         public static void RenameDBInsertFiles()
         {
-            string progTime = String.Format("_{0:yyyyMMdd}", DateTime.Now);
+            string progTime = string.Format("_{0:yyyyMMdd}", DateTime.Now);
             string location = appPath + "\\Logs\\DBInsert-" + Thread.CurrentThread.Name + progTime + ".txt";
 
             FileInfo f = new FileInfo(location);
             if (f.Exists && f.Length > 2097152)
             {
-                string newfile = appPath + "\\Logs\\" + (Path.GetFileNameWithoutExtension(f.Name)) + String.Format("_{0:HHmmss}", DateTime.Now) + ".txt";
+                string newfile = appPath + "\\Logs\\" + Path.GetFileNameWithoutExtension(f.Name) + string.Format("_{0:HHmmss}", DateTime.Now) + ".txt";
                 try
                 {
                     f.MoveTo(newfile);
