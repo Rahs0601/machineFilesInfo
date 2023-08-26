@@ -147,13 +147,14 @@ namespace machineFilesInfo
         }
         public void setAndGetFileInfo()
         {
-            fileDataBaseAccess fdba = new fileDataBaseAccess();
-            dblist = fdba.GetFileInformation();
-            string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
-            GetLocalFiles(LocalDirectory);
-            SqlConnection conn = ConnectionManager.GetConnection();
+            SqlConnection conn = null;
             try
             {
+                fileDataBaseAccess fdba = new fileDataBaseAccess();
+                dblist = fdba.GetFileInformation();
+                string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
+                GetLocalFiles(LocalDirectory);
+                conn = ConnectionManager.GetConnection();
                 foreach (FileInformation sfile in StandardSoftwareProgramList)
                 {
 
