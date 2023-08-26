@@ -13,7 +13,7 @@ namespace machineFilesInfo
         {
             List<FileInformation> files = new List<FileInformation>();
 
-            string query = "select * from machineFileInfo order by fileName";
+            string query = "select * from machineFileInfo";
             SqlConnection conn = ConnectionManager.GetConnection();
             SqlCommand cmd = new SqlCommand(query, conn);
             SqlDataReader reader = default;
@@ -30,7 +30,7 @@ namespace machineFilesInfo
                         FolderPath = reader["filePath"].ToString().Trim(),
                         FileSize = int.Parse(reader["fileSize"].ToString()),
                         CreatedDate = (DateTime)reader["fileDateCreated"],
-                        ModifiedDate = (DateTime)reader["storedModifiedDate"],
+                        ModifiedDate = (DateTime)reader["StandardModifiedDate"],
                         Owner = reader["fileOwner"].ToString().Trim(),
                         ComputerName = reader["computer"].ToString().Trim()
                     };
@@ -54,7 +54,7 @@ namespace machineFilesInfo
         //                   "values  (@fileName, @fileType, @folder, @fileSize, @createdDate, @modifiedDate , @owner, @computerName)";
 
 
-        public void InsertIntoDatabase(FileInformation local)
+        public void InsertIntoDatabase(FileInformation local, SqlConnection conn)
         {
             string operation = local.FolderPath.Split('\\').Reverse().Skip(1).First();
             string component = local.FolderPath.Split('\\').Reverse().Skip(3).First();
@@ -62,10 +62,9 @@ namespace machineFilesInfo
             string opdescription = operation.Split('_').Last();
             string Cdate = local.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss");
             string Mdate = local.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
-            string insertQry = "Insert into machineFileInfo(fileName, fileType, filePath, fileSize, fileDateCreated, storedModifiedDate, fileOwner, computer , operationID  ,operationDespcription , component)  " +
+            string insertQry = "Insert into machineFileInfo(fileName, fileType, filePath, fileSize, fileDateCreated, StandardModifiedDate, fileOwner, computer , operationID  ,operationDespcription , component)  " +
                                                 "values  (@file_Name, @file_Type, @folder, @file_Size, @created_Date, @modified_Date , @owner, @computer_Name ,@opId , @opDescription , @component)";
 
-            SqlConnection conn = ConnectionManager.GetConnection();
 
             using (SqlCommand cmd = new SqlCommand(insertQry, conn))
             {
@@ -85,60 +84,76 @@ namespace machineFilesInfo
             }
         }
 
-        public void updateDatabaseProven(FileInformation File, FileInformation File2)
+        public void updateDatabaseProven(FileInformation pFile, FileInformation sFile, SqlConnection conn)
         {
             //int val = int.Parse(File.ModifiedDate.ToString().Equals(File2.ModifiedDate.ToString()).ToString());
             int val = 0;
-            if (File.ModifiedDate.ToString().Equals(File2.ModifiedDate.ToString()))
+            string date = null;
+            string folder = sFile.FolderPath.Substring(0, sFile.FolderPath.LastIndexOf('\\'));
+            string file = sFile.FileName;
+            if (pFile != null)
             {
-                val = 1;
+                if (pFile.ModifiedDate.ToString().Equals(sFile.ModifiedDate.ToString()))
+                {
+                    val = 1;
+                }
+                date = pFile.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
+                //remove last folder in folder path 
+                folder = pFile.FolderPath.Substring(0, pFile.FolderPath.LastIndexOf('\\'));
+                file = pFile.FileName;
             }
-            string date = File.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
-            //remove last folder in folder path 
-            string folder = File.FolderPath.Substring(0, File.FolderPath.LastIndexOf('\\'));
-            string updateQry = $"UPDATE machineFileInfo SET provenModifiedDate = '{date}', isMoved = {val}, UpdatedTS = GETDATE() WHERE fileName = '{File.FileName}' and filePath like '{folder}\\" + "%'";
-            SqlConnection conn = ConnectionManager.GetConnection();
+            string updateQry = $"UPDATE machineFileInfo SET provenModifiedDate = '{date}', isMoved = {val}, UpdatedTS = GETDATE() WHERE fileName = '{file}' and filePath like '{folder}\\" + "%'";
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
                 _ = cmd.ExecuteNonQuery();
-                Logger.WriteExtraLog($"File {File.FileName} information updated in  database." + DateTime.Now);
+                Logger.WriteExtraLog($"File {file} information updated in  database." + DateTime.Now);
             }
         }
-        public void updateDatabaseStandard(FileInformation SFile)
+        public void updateDatabaseStandard(FileInformation sFile, FileInformation dbFile, SqlConnection conn)
         {
             int val = 0;
-            string date = SFile.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
-            SqlConnection conn = ConnectionManager.GetConnection();
-            string updateQry = "UPDATE machineFileInfo SET storedModifiedDate = @date, isMoved = @val, fileSize = @fileSize , UpdatedTS = GETDATE() WHERE fileName = @fileName AND filePath = @filePath";
+            string date = null;
+            string file = dbFile.FileName;
+            string folder = dbFile.FolderPath;
+            string size = dbFile.FileSize.ToString();
+            if (sFile != null)
+            {
+                date = sFile.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
+                file = sFile.FileName;
+                folder = sFile.FolderPath;
+                size = sFile.FileSize.ToString();
+            }
+
+            string updateQry = "UPDATE machineFileInfo SET StandardModifiedDate = @date, isMoved = @val, fileSize = @fileSize , UpdatedTS = GETDATE() WHERE fileName = @fileName AND filePath = @filePath";
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
                 _ = cmd.Parameters.AddWithValue("@date", date);
                 _ = cmd.Parameters.AddWithValue("@val", val);
-                _ = cmd.Parameters.AddWithValue("@fileName", SFile.FileName);
-                _ = cmd.Parameters.AddWithValue("@filePath", SFile.FolderPath);
-                _ = cmd.Parameters.AddWithValue("@fileSize", SFile.FileSize);
+                _ = cmd.Parameters.AddWithValue("@fileName", file);
+                _ = cmd.Parameters.AddWithValue("@filePath", folder);
+                _ = cmd.Parameters.AddWithValue("@fileSize", size);
 
                 _ = cmd.ExecuteNonQuery();
-                Logger.WriteExtraLog($"File {SFile.FileName} information updated in database." + DateTime.Now);
+                Logger.WriteExtraLog($"File {sFile.FileName} information updated in database." + DateTime.Now);
             }
 
         }
 
-        //   @"IF EXISTS (SELECT * from MachineRunningHMIStatus_Cumi where MachineInterfaceId=@machineInfaceId )
-        //	BEGIN
-        //	  UPDATE MachineRunningHMIStatus_Cumi SET CompInterface = @PowderGrade+':'+@ProductDescription,
-        //	  OrderNumber= @OrderNumber, PlanQty = @PlanQty , ActualQty = @ActualQty, Status= @Status,
-        //	  BatchTS = @BatchTS,  UpdatedTS = GETDATE(),ExpectedFinishTime = @ExpectedFinishTime
-        //                     where MachineInterfaceId=@machineInfaceId
-        //	END
-        //ELSE
-        //	BEGIN
-        //	INSERT INTO MachineRunningHMIStatus_Cumi(MachineInterfaceId,CompInterface,OrderNumber,PlanQty,ActualQty,Status,BatchTS,UpdatedTS,ExpectedFinishTime)
-        //	VALUES(@machineInfaceId,@PowderGrade+':'+@ProductDescription,@OrderNumber,@PlanQty,@ActualQty,@Status,@BatchTS,GETDATE(),@ExpectedFinishTime)
-        //END"
+        internal void DeleteFromDatabase(FileInformation dbfile, SqlConnection conn)
+        {
+            string deleteQry = "DELETE FROM machineFileInfo WHERE fileName = @fileName AND filePath = @filePath";
 
+            using (SqlCommand cmd = new SqlCommand(deleteQry, conn))
+            {
+                _ = cmd.Parameters.AddWithValue("@fileName", dbfile.FileName);
+                _ = cmd.Parameters.AddWithValue("@filePath", dbfile.FolderPath);
+
+                _ = cmd.ExecuteNonQuery();
+                Logger.WriteExtraLog($"File {dbfile.FileName} information deleted from database." + DateTime.Now);
+            }
+        }
 
     }
 }

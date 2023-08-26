@@ -30,10 +30,6 @@ namespace machineFilesInfo
             get => computerName;
             set => computerName = value;
         }
-        public override bool Equals(object other)
-        {
-            FileInformation oldFile = other as FileInformation;
-            return FileSize.Equals(oldFile.FileSize) && ModifiedDate.Equals(oldFile.ModifiedDate);
-        }
+
     }
 }

@@ -15,12 +15,14 @@ namespace machineFilesInfo
         private readonly string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         private readonly List<FileInformation> ProvenMachineProgramList = new List<FileInformation>();
         private readonly List<FileInformation> StandardSoftwareProgramList = new List<FileInformation>();
-        private readonly Dictionary<string, DateTime> shiftDetails = new Dictionary<string, DateTime>();
+        private readonly List<TimeSpan> shiftDetails = new List<TimeSpan>();
         private List<FileInformation> dblist = new List<FileInformation>();
         private readonly string synctype = ConfigurationManager.AppSettings["syncType"];
-        private readonly DateTime startTime = DateTime.Parse(ConfigurationManager.AppSettings["startTime"]);
         private readonly Thread StartFunctionThread = null;
+        private DateTime Target = DateTime.Now.AddHours(-1);
         private bool running;
+        int idx = 0;
+
         public Service1()
         {
             InitializeComponent();
@@ -34,22 +36,6 @@ namespace machineFilesInfo
                 _ = Directory.CreateDirectory(appPath + "\\Logs\\");
             }
 
-            if (synctype.Equals("shiftend", StringComparison.OrdinalIgnoreCase))
-            {
-                string query = "select * from shiftdetails where running = 1";
-                SqlConnection conn = ConnectionManager.GetConnection();
-                SqlCommand cmd = new SqlCommand(query, conn);
-                SqlDataReader reader = default;
-
-                while (reader.Read())
-                {
-                    shiftDetails.Add(reader["shiftName"].ToString(), DateTime.Parse(reader["shiftEndTime"].ToString()));
-                }
-            }
-            else
-            {
-                shiftDetails.Add("default", startTime);
-            }
             Thread.CurrentThread.Name = "Main";
             Thread StartFunctionThread = new Thread(new ThreadStart(StartFunction))
             {
@@ -60,26 +46,57 @@ namespace machineFilesInfo
 
         private void StartFunction()
         {
-            while (running)
+            //                ToTime
+            //2023 - 07 - 06 14:00:00.000
+            //2023 - 07 - 06 22:00:00.000
+            //2023 - 07 - 06 06:00:00.000
+
+            try
             {
-#if DEBUG
-                setAndGetFileInfo();
-#endif
-                foreach (KeyValuePair<string, DateTime> date in shiftDetails)
+                if (synctype.Equals("shiftend", StringComparison.OrdinalIgnoreCase))
+                {
+                    string query = "select * from shiftdetails where running = 1";
+                    SqlConnection conn = ConnectionManager.GetConnection();
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    SqlDataReader reader = cmd.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        //get time only from db 
+                        TimeSpan Shiftend = DateTime.Parse(reader["ToTime"].ToString()).TimeOfDay;
+                        shiftDetails.Add(Shiftend);
+                    }
+                    shiftDetails.Sort();
+                }
+                else
                 {
 
-                    if (date.Value.TimeOfDay == DateTime.Now.TimeOfDay)
-                    {
-                        setAndGetFileInfo();
-#if !DEBUG
-                        Thread.Sleep(1000 * 60 * 60 * 4);
-#endif
-                    }
+                    TimeSpan startTime = DateTime.Parse(ConfigurationManager.AppSettings["startTime"]).TimeOfDay;
+                    shiftDetails.Add(startTime);
                 }
 
-
-
+                while (running)
+                {
+                    try
+                    {
+                        if (DateTime.Now >= Target)
+                        {
+                            Logger.WriteDebugLog("Process Started at" + DateTime.Now);
+                            setAndGetFileInfo();
+                            Logger.WriteDebugLog("Process Ended at" + DateTime.Now);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.WriteErrorLog(ex.Message);
+                    }
+                }
             }
+            catch (Exception ex)
+            {
+                Logger.WriteErrorLog(ex.Message);
+            }
+
         }
         private void GetLocalFiles(string path)
         {
@@ -134,57 +151,78 @@ namespace machineFilesInfo
             dblist = fdba.GetFileInformation();
             string LocalDirectory = ConfigurationManager.AppSettings["folderPath"].ToString();
             GetLocalFiles(LocalDirectory);
-
+            SqlConnection conn = ConnectionManager.GetConnection();
             try
             {
-
-                foreach (FileInformation file in StandardSoftwareProgramList)
+                foreach (FileInformation sfile in StandardSoftwareProgramList)
                 {
-                    string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First(); // operation 
 
-                    FileInformation dbfile = dblist.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
-                    if (dbfile != null && !file.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString()))
+                    FileInformation dbfile = dblist.Find(x => x.FileName == sfile.FileName && x.FolderPath == sfile.FolderPath);
+                    if (dbfile != null && !sfile.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString()))
                     {
-                        fdba.updateDatabaseStandard(file);
+                        fdba.updateDatabaseStandard(sfile, dbfile, conn);
                     }
 
                     if (dbfile == null)
                     {
-                        fdba.InsertIntoDatabase(file);
+                        fdba.InsertIntoDatabase(sfile, conn);
                     }
                 }
-                //string[] files = Directory.GetFiles(LocalDirectory);
 
-
-                // Get common files which are present in both lists dblist and StandardSoftwareProgramList with filename and parent folder path of its parent folder remains same
-
-                // if db == program 
-
-                foreach (FileInformation file in ProvenMachineProgramList)
+                foreach (FileInformation pfile in ProvenMachineProgramList)
                 {
-                    string PrentdirectoryName = file.FolderPath.Split('\\').Reverse().Skip(1).First();
+                    string folder = pfile.FolderPath.Substring(0, pfile.FolderPath.LastIndexOf('\\'));
 
-                    FileInformation pfile = StandardSoftwareProgramList.Find(x => x.FileName == file.FileName && x.FolderPath.Contains(PrentdirectoryName));
-
-                    if (pfile != null) //&& file.ModifiedDate.ToString().Equals(pfile.ModifiedDate.ToString()))
+                    FileInformation sfile = StandardSoftwareProgramList.Find(x => x.FileName == pfile.FileName && x.FolderPath.StartsWith(folder));
+                    if (sfile != null)
                     {
-                        fdba.updateDatabaseProven(file, pfile);
+                        fdba.updateDatabaseProven(pfile, sfile, conn);
                     }
-
                 }
-            }
-            catch (DirectoryNotFoundException)
-            {
-                Logger.WriteDebugLog("The specified folder does not exist.");
+
+                foreach (FileInformation dbfile in dblist)
+                {
+                    FileInformation sfile = StandardSoftwareProgramList.Find(x => x.FileName == dbfile.FileName && x.FolderPath == dbfile.FolderPath);
+                    string folder = dbfile.FolderPath.Substring(0, dbfile.FolderPath.LastIndexOf('\\'));
+                    FileInformation pfile = ProvenMachineProgramList.Find(x => x.FileName == dbfile.FileName && x.FolderPath.StartsWith(folder));
+
+                    if (sfile == null && pfile == null)
+                    {
+                        fdba.DeleteFromDatabase(dbfile, conn);
+                    }
+                    if (sfile == null && pfile != null)
+                    {
+                        fdba.updateDatabaseStandard(sfile, dbfile, conn);
+                    }
+                    if (sfile != null && pfile == null)
+                    {
+                        fdba.updateDatabaseProven(pfile, sfile, conn);
+                    }
+                }
+
+                // target time should be one of the shift end time which is getter the current time
+                //get index of shift end time which is getter the current 
+                int idx = shiftDetails.FindIndex(x => x > DateTime.Now.TimeOfDay);
+                if (idx == -1)
+                {
+                    idx = 0;
+                }
+                Target = DateTime.Now.Add(shiftDetails[idx]);
+
             }
             catch (Exception ex)
             {
                 Logger.WriteErrorLog($"An error occurred: {ex.Message}" + DateTime.Now);
             }
-            //clear the list
-            ProvenMachineProgramList.Clear();
-            StandardSoftwareProgramList.Clear();
-            dblist.Clear();
+            finally
+            {
+                conn?.Close();
+                //clear the list
+                ProvenMachineProgramList.Clear();
+                StandardSoftwareProgramList.Clear();
+                dblist.Clear();
+            }
+
         }
 
         protected override void OnStop()
