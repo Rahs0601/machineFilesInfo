@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.ServiceProcess;
 using System.Threading;
@@ -21,7 +20,7 @@ namespace machineFilesInfo
         private readonly Thread StartFunctionThread = null;
         private DateTime Target = DateTime.Now.AddHours(-1);
         private bool running;
-        int idx = 0;
+        private readonly int idx = 0;
 
         public Service1()
         {
@@ -169,7 +168,9 @@ namespace machineFilesInfo
                         fdba.InsertIntoDatabase(sfile, conn);
                     }
                 }
+                conn?.Close();
 
+                conn = ConnectionManager.GetConnection();
                 foreach (FileInformation pfile in ProvenMachineProgramList)
                 {
                     string folder = pfile.FolderPath.Substring(0, pfile.FolderPath.LastIndexOf('\\'));
@@ -180,6 +181,10 @@ namespace machineFilesInfo
                         fdba.updateDatabaseProven(pfile, sfile, conn);
                     }
                 }
+
+                conn?.Close();
+
+                conn = ConnectionManager.GetConnection();
 
                 foreach (FileInformation dbfile in dblist)
                 {

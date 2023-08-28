@@ -86,7 +86,6 @@ namespace machineFilesInfo
 
         public void updateDatabaseProven(FileInformation pFile, FileInformation sFile, SqlConnection conn)
         {
-            //int val = int.Parse(File.ModifiedDate.ToString().Equals(File2.ModifiedDate.ToString()).ToString());
             int val = 0;
             string date = null;
             string folder = sFile.FolderPath.Substring(0, sFile.FolderPath.LastIndexOf('\\'));
@@ -98,16 +97,21 @@ namespace machineFilesInfo
                     val = 1;
                 }
                 date = pFile.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
-                //remove last folder in folder path 
                 folder = pFile.FolderPath.Substring(0, pFile.FolderPath.LastIndexOf('\\'));
                 file = pFile.FileName;
             }
-            string updateQry = $"UPDATE machineFileInfo SET provenModifiedDate = '{date}', isMoved = {val}, UpdatedTS = GETDATE() WHERE fileName = '{file}' and filePath like '{folder}\\" + "%'";
+
+            string updateQry = "UPDATE machineFileInfo SET provenModifiedDate = @date, isMoved = @val, UpdatedTS = GETDATE() WHERE fileName = @file AND filePath LIKE @folder";
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
-                _ = cmd.ExecuteNonQuery();
-                Logger.WriteExtraLog($"File {file} information updated in  database." + DateTime.Now);
+                cmd.Parameters.AddWithValue("@date", date);
+                cmd.Parameters.AddWithValue("@val", val);
+                cmd.Parameters.AddWithValue("@file", file);
+                cmd.Parameters.AddWithValue("@folder", folder + "\\%");
+
+                cmd.ExecuteNonQuery();
+                Logger.WriteExtraLog($"File {file} information updated in database." + DateTime.Now);
             }
         }
         public void updateDatabaseStandard(FileInformation sFile, FileInformation dbFile, SqlConnection conn)
