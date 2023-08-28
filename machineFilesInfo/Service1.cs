@@ -20,6 +20,7 @@ namespace machineFilesInfo
         private readonly Thread StartFunctionThread = null;
         private DateTime Target = DateTime.Now.AddHours(-1);
         private bool running;
+
         public Service1()
         {
             InitializeComponent();
@@ -59,7 +60,7 @@ namespace machineFilesInfo
 
                     while (reader.Read())
                     {
-                        //get time only from db 
+                        //get time only from db
                         TimeSpan Shiftend = DateTime.Parse(reader["ToTime"].ToString()).TimeOfDay;
                         shiftDetails.Add(Shiftend);
                     }
@@ -67,7 +68,6 @@ namespace machineFilesInfo
                 }
                 else
                 {
-
                     TimeSpan startTime = DateTime.Parse(ConfigurationManager.AppSettings["startTime"]).TimeOfDay;
                     shiftDetails.Add(startTime);
                 }
@@ -93,14 +93,12 @@ namespace machineFilesInfo
             {
                 Logger.WriteErrorLog(ex.Message);
             }
-
         }
+
         private void GetLocalFiles(string path)
         {
-
             try
             {
-
                 foreach (string subDirectory in Directory.GetDirectories(path, "Proven Machine Program", SearchOption.AllDirectories))
                 {
                     foreach (string file in Directory.GetFiles(subDirectory))
@@ -140,8 +138,8 @@ namespace machineFilesInfo
             {
                 Logger.WriteErrorLog(ex.Message);
             }
-
         }
+
         public void setAndGetFileInfo()
         {
             SqlConnection conn = null;
@@ -154,7 +152,6 @@ namespace machineFilesInfo
                 conn = ConnectionManager.GetConnection();
                 foreach (FileInformation sfile in StandardSoftwareProgramList)
                 {
-
                     FileInformation dbfile = dblist.Find(x => x.FileName == sfile.FileName && x.FolderPath == sfile.FolderPath);
                     if (dbfile != null && !sfile.ModifiedDate.ToString().Equals(dbfile.ModifiedDate.ToString()))
                     {
@@ -205,14 +202,13 @@ namespace machineFilesInfo
                 }
 
                 // target time should be one of the shift end time which is getter the current time
-                //get index of shift end time which is getter the current 
+                //get index of shift end time which is getter the current
                 int idx = shiftDetails.FindIndex(x => x > DateTime.Now.TimeOfDay);
                 if (idx == -1)
                 {
                     idx = 0;
                 }
                 Target = DateTime.Now.Add(shiftDetails[idx]);
-
             }
             catch (Exception ex)
             {
@@ -226,7 +222,6 @@ namespace machineFilesInfo
                 StandardSoftwareProgramList.Clear();
                 dblist.Clear();
             }
-
         }
 
         protected override void OnStop()

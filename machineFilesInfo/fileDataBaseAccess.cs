@@ -8,7 +8,6 @@ namespace machineFilesInfo
 {
     internal class fileDataBaseAccess
     {
-
         public List<FileInformation> GetFileInformation()
         {
             List<FileInformation> files = new List<FileInformation>();
@@ -53,7 +52,6 @@ namespace machineFilesInfo
         //string query = "Insert into machineFileInfo(fileName, fileType, filePath, fileSize, fileDateCreated, fileDateModified, fileOwner, computer)" +
         //                   "values  (@fileName, @fileType, @folder, @fileSize, @createdDate, @modifiedDate , @owner, @computerName)";
 
-
         public void InsertIntoDatabase(FileInformation local, SqlConnection conn)
         {
             string operation = local.FolderPath.Split('\\').Reverse().Skip(1).First();
@@ -64,7 +62,6 @@ namespace machineFilesInfo
             string Mdate = local.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss");
             string insertQry = "Insert into machineFileInfo(fileName, fileType, filePath, fileSize, fileDateCreated, StandardModifiedDate, fileOwner, computer , operationID  ,operationDespcription , component)  " +
                                                 "values  (@file_Name, @file_Type, @folder, @file_Size, @created_Date, @modified_Date , @owner, @computer_Name ,@opId , @opDescription , @component)";
-
 
             using (SqlCommand cmd = new SqlCommand(insertQry, conn))
             {
@@ -79,6 +76,7 @@ namespace machineFilesInfo
                 _ = cmd.Parameters.AddWithValue("@opId", opid);
                 _ = cmd.Parameters.AddWithValue("@opDescription", opdescription);
                 _ = cmd.Parameters.AddWithValue("@component", component);
+
                 _ = cmd.ExecuteNonQuery();
                 Logger.WriteExtraLog($"File {local.FileName} information inserted into the database." + DateTime.Now);
             }
@@ -114,6 +112,7 @@ namespace machineFilesInfo
                 Logger.WriteExtraLog($"File {file} information updated in database." + DateTime.Now);
             }
         }
+
         public void updateDatabaseStandard(FileInformation sFile, FileInformation dbFile, SqlConnection conn)
         {
             int val = 0;
@@ -142,7 +141,6 @@ namespace machineFilesInfo
                 _ = cmd.ExecuteNonQuery();
                 Logger.WriteExtraLog($"File {sFile.FileName} information updated in database." + DateTime.Now);
             }
-
         }
 
         internal void DeleteFromDatabase(FileInformation dbfile, SqlConnection conn)
@@ -158,6 +156,5 @@ namespace machineFilesInfo
                 Logger.WriteExtraLog($"File {dbfile.FileName} information deleted from database." + DateTime.Now);
             }
         }
-
     }
 }

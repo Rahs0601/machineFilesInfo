@@ -8,6 +8,7 @@ namespace machineFilesInfo
     public static class CleanUpProcess
     {
         private static readonly string appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+
         public static void DeleteFiles(string folder, string ip)
         {
             DirectoryInfo di = new DirectoryInfo(Path.Combine(appPath, folder));
@@ -53,6 +54,7 @@ namespace machineFilesInfo
                 }
             }
         }
+
         public static void RenameTPMFiles()
         {
             string progTime = string.Format("_{0:yyyyMMdd}", DateTime.Now);
@@ -73,6 +75,7 @@ namespace machineFilesInfo
                 }
             }
         }
+
         public static void RenameDBInsertFiles()
         {
             string progTime = string.Format("_{0:yyyyMMdd}", DateTime.Now);
@@ -93,7 +96,5 @@ namespace machineFilesInfo
                 }
             }
         }
-
-
     }
 }

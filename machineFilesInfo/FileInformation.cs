@@ -12,6 +12,5 @@ namespace machineFilesInfo
         public DateTime ModifiedDate { get; set; }
         public string Owner { get; set; }
         public string ComputerName { get; set; }
-
     }
 }

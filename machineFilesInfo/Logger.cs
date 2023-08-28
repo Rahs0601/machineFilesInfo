@@ -12,6 +12,7 @@ namespace machineFilesInfo
         private static readonly string appPath;
         private static readonly string enableLog;
         private static readonly string enableExtraLog;
+
         static Logger()
         {
             appPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -45,6 +46,7 @@ namespace machineFilesInfo
                 }
             }
         }
+
         public static void WriteErrorLog(string str)
         {
             StreamWriter writer = null;

@@ -39,10 +39,8 @@ namespace machineFilesInfo
                     }
                     Thread.Sleep(1000);
                 }
-
             } while (conn.State != ConnectionState.Open);
             return conn;
         }
     }
-
 }
