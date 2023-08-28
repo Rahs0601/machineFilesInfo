@@ -44,11 +44,6 @@ namespace machineFilesInfo
 
         private void StartFunction()
         {
-            //                ToTime
-            //2023 - 07 - 06 14:00:00.000
-            //2023 - 07 - 06 22:00:00.000
-            //2023 - 07 - 06 06:00:00.000
-
             try
             {
                 if (synctype.Equals("shiftend", StringComparison.OrdinalIgnoreCase))
