@@ -20,8 +20,6 @@ namespace machineFilesInfo
         private readonly Thread StartFunctionThread = null;
         private DateTime Target = DateTime.Now.AddHours(-1);
         private bool running;
-        private readonly int idx = 0;
-
         public Service1()
         {
             InitializeComponent();

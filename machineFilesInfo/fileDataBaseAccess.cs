@@ -105,12 +105,12 @@ namespace machineFilesInfo
 
             using (SqlCommand cmd = new SqlCommand(updateQry, conn))
             {
-                cmd.Parameters.AddWithValue("@date", date);
-                cmd.Parameters.AddWithValue("@val", val);
-                cmd.Parameters.AddWithValue("@file", file);
-                cmd.Parameters.AddWithValue("@folder", folder + "\\%");
+                _ = cmd.Parameters.AddWithValue("@date", date);
+                _ = cmd.Parameters.AddWithValue("@val", val);
+                _ = cmd.Parameters.AddWithValue("@file", file);
+                _ = cmd.Parameters.AddWithValue("@folder", folder + "\\%");
 
-                cmd.ExecuteNonQuery();
+                _ = cmd.ExecuteNonQuery();
                 Logger.WriteExtraLog($"File {file} information updated in database." + DateTime.Now);
             }
         }
