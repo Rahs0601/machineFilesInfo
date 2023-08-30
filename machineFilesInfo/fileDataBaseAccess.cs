@@ -90,7 +90,9 @@ namespace machineFilesInfo
             string file = sFile.FileName;
             if (pFile != null)
             {
-                if (pFile.ModifiedDate.ToString().Equals(sFile.ModifiedDate.ToString()))
+                //    if (pFile.ModifiedDate.ToString().Equals(sFile.ModifiedDate.ToString()))
+                //greater than or equal to
+                if (pFile.ModifiedDate >= sFile.ModifiedDate)
                 {
                     val = 1;
                 }
